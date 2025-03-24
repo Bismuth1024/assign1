@@ -43,8 +43,8 @@ try:
   serverSocket.listen(1)
   # ~~~~ END CODE INSERT ~~~~
   print ('Listening to socket')
-except:
-  print ('Failed to listen')
+except Exception as e:
+  print (f'Failed to listen: {e}')
   sys.exit()
 
 # continuously accept connections
@@ -58,8 +58,8 @@ while True:
     clientSocket, address = serverSocket.accept()
     # ~~~~ END CODE INSERT ~~~~
     print ('Received a connection')
-  except:
-    print ('Failed to accept connection')
+  except Exception as e:
+    print (f'Failed to accept connection: {e}')
     sys.exit()
 
   # Get HTTP request from client
@@ -135,20 +135,27 @@ while True:
     print ('Connecting to:\t\t' + hostname + '\n')
     try:
       # Get the IP address for a hostname
-      address = socket.gethostbyname(hostname)
+      try:
+        address = socket.gethostbyname(hostname)
+      except Exception as e:
+        print(f'failed to get address: {e}')
+
       # Connect to the origin server
       # ~~~~ INSERT CODE ~~~~
-      originServerSocket.connect((hostname, 80))
+      try:
+        originServerSocket.connect((address, 80))
+      except Exception as e:
+        print(f'failed to connect to origin server: {e}')
       # ~~~~ END CODE INSERT ~~~~
       print ('Connected to origin Server')
 
-      originServerRequest = ''
-      originServerRequestHeader = ''
       # Create origin server request line and headers to send
       # and store in originServerRequestHeader and originServerRequest
       # originServerRequest is the first line in the request and
       # originServerRequestHeader is the second line in the request
       # ~~~~ INSERT CODE ~~~~
+      originServerRequest = f"GET {resource} HTTP/1.1"
+      originServerRequestHeader = f"Host: {hostname}\r\nConnection: close"
       # ~~~~ END CODE INSERT ~~~~
 
       # Construct the request to send to the origin server
@@ -161,18 +168,20 @@ while True:
 
       try:
         originServerSocket.sendall(request.encode())
-      except socket.error:
-        print ('Forward request to origin failed')
+      except Exception as e:
+        print (f'Forward request to origin failed: {e}')
         sys.exit()
 
       print('Request sent to origin server\n')
 
       # Get the response from the origin server
       # ~~~~ INSERT CODE ~~~~
+      responseData = originServerSocket.recv(BUFFER_SIZE)
       # ~~~~ END CODE INSERT ~~~~
 
       # Send the response to the client
       # ~~~~ INSERT CODE ~~~~
+      clientSocket.sendall(responseData)
       # ~~~~ END CODE INSERT ~~~~
 
       # Create a new file in the cache for the requested file.
@@ -184,6 +193,7 @@ while True:
 
       # Save origin server response in the cache file
       # ~~~~ INSERT CODE ~~~~
+      cacheFile.write(responseData)
       # ~~~~ END CODE INSERT ~~~~
       cacheFile.close()
       print ('cache file closed')
