@@ -23,18 +23,18 @@ try:
   serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
   # ~~~~ END CODE INSERT ~~~~
   print ('Created socket')
-except:
-  print ('Failed to create socket')
+except Exception as e:
+  print (f'Failed to create socket: {e}')
   sys.exit()
 
 try:
   # Bind the the server socket to a host and port
   # ~~~~ INSERT CODE ~~~~
-  serverSocket.bind(('', port))
+  serverSocket.bind((proxyHost, proxyPort))
   # ~~~~ END CODE INSERT ~~~~
   print ('Port is bound')
-except:
-  print('Port is already in use')
+except Exception as e:
+  print (f'Failed to bind to port: {e}')
   sys.exit()
 
 try:
@@ -129,6 +129,7 @@ while True:
     # Create a socket to connect to origin server
     # and store in originServerSocket
     # ~~~~ INSERT CODE ~~~~
+    originServerSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     # ~~~~ END CODE INSERT ~~~~
 
     print ('Connecting to:\t\t' + hostname + '\n')
@@ -137,6 +138,7 @@ while True:
       address = socket.gethostbyname(hostname)
       # Connect to the origin server
       # ~~~~ INSERT CODE ~~~~
+      originServerSocket.connect((hostname, 80))
       # ~~~~ END CODE INSERT ~~~~
       print ('Connected to origin Server')
 
