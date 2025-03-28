@@ -18,6 +18,22 @@ def parse_http(raw_data):
     headers = {line.split(": ")[0]: line.split(": ")[1] for line in header_lines[1:] if ": " in line}
     return headers, body
 
+def update_date(http_data):
+    headers, body = parse_http(http_data)
+    
+    #Generate new Date header
+    headers["Date"] = email.utils.formatdate(time.time(), usegmt=True)
+    
+    #Reconstruct the header section
+    header_lines = [http_data.split(b"\r\n", 1)[0].decode("utf-8")]
+    header_lines += [f"{key}: {value}" for key, value in headers.items()]
+    
+    #Join headers and reassemble the raw HTTP data
+    updated_header = "\r\n".join(header_lines).encode("utf-8")
+    updated_raw_data = updated_header + b"\r\n\r\n" + body
+    
+    return updated_raw_data
+
 def fetch_from_server(hostname, resource):
     originServerSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     print('Connecting to:		' + hostname + '\n')
@@ -157,6 +173,8 @@ while True:
     cached_data = check_cache(cacheLocation)
     if cached_data is None:
         cached_data = fetch_from_server(hostname, resource)
+    else:
+    	cached_data = update_date(cached_data)
     
     try:
         clientSocket.sendall(cached_data)
