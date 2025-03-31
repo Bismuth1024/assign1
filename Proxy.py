@@ -10,16 +10,17 @@ import email.utils
 BUFFER_SIZE = 1000000
 
 def parse_http(raw_data):
-    # Extract into header and body
+    #Extract into header and body
     header, body = raw_data.split(b"\r\n\r\n", 1)
-    # Split header into a list of lines
+    #Split header into a list of lines
     header_lines = header.decode("utf-8").split("\r\n")
-    # Decompose the header lines into key:value pairs
+    #Decompose the header lines into key:value pairs
     headers = {line.split(": ")[0]: line.split(": ")[1] for line in header_lines[1:] if ": " in line}
-    return headers, body
+    status_code = int(header_lines[0].split(" ")[1])
+    return status_code, headers, body
 
 def update_date(http_data):
-    headers, body = parse_http(http_data)
+    _, headers, body = parse_http(http_data)
     
     #Generate new Date header
     headers["Date"] = email.utils.formatdate(time.time(), usegmt=True)
@@ -67,13 +68,11 @@ def fetch_from_server(hostname, resource):
         
         print('Request sent to origin server\n')
         responseData = originServerSocket.recv(BUFFER_SIZE)
-        headers, body = parse_http(responseData)
+        status_code, headers, body = parse_http(responseData)
         cache_control = headers.get("Cache-Control", "")
         directives = dict(item.split("=") if "=" in item else (item, None) for item in cache_control.split(","))
-        
-        clientSocket.sendall(responseData)
-        
-        if "no-store" not in directives:
+                
+        if "no-store" not in directives and status_code not in {302, 404}:
             cacheDir, file = os.path.split(cacheLocation)
             print('Cached directory ' + cacheDir)
             if not os.path.exists(cacheDir):
@@ -99,7 +98,7 @@ def check_cache(file_path):
     with open(file_path, 'rb') as cache_file:
         cached_data = cache_file.read()
     
-    headers, cached_body = parse_http(cached_data)
+    _, headers, cached_body = parse_http(cached_data)
     cache_control = headers.get("Cache-Control", "")
     directives = dict(item.split("=") if "=" in item else (item, None) for item in cache_control.split(","))
     max_age_seconds = int(directives.get("max-age", 9999999999))
